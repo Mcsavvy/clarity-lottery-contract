@@ -18,6 +18,7 @@ This is a Clarity smart contract that implements a lottery system with the follo
 - Minimum number of players required for a draw
 - Input validation for ticket purchases
 - Maximum tickets per player to prevent manipulation
+- Improved error handling for invalid participants
 
 ## Functions
 
@@ -31,6 +32,7 @@ The contract includes a test file with several unit tests to ensure proper funct
 - Owner-only functions
 - Lottery draw mechanics
 - Maximum tickets per player validation
+- Invalid participant handling in winner selection
 
 ## Recent Enhancements
 
@@ -38,3 +40,4 @@ The contract includes a test file with several unit tests to ensure proper funct
 2. Added input validation for ticket purchases to prevent zero-ticket purchases
 3. Added new function to allow owner to configure minimum players requirement
 4. Enhanced test coverage for new features
+5. Improved error handling in random winner selection process
