@@ -14,3 +14,17 @@ Clarinet.test({
     block.receipts[0].result.expectErr().expectUint(105);
   },
 });
+
+Clarinet.test({
+  name: "Test invalid participant handling in random winner selection",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const wallet1 = accounts.get('wallet_1')!;
+    
+    let block = chain.mineBlock([
+      Tx.contractCall('lottery', 'draw-lottery', [], wallet1.address)
+    ]);
+    
+    assertEquals(block.receipts.length, 1);
+    block.receipts[0].result.expectErr().expectUint(106);
+  },
+});
