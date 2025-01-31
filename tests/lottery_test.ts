@@ -23,6 +23,21 @@ Clarinet.test({
 });
 
 Clarinet.test({
+  name: "Ensure that users cannot buy zero tickets",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const wallet1 = accounts.get('wallet_1')!;
+    
+    let block = chain.mineBlock([
+      Tx.contractCall('lottery', 'buy-ticket', [types.uint(0)], wallet1.address)
+    ]);
+    
+    assertEquals(block.receipts.length, 1);
+    assertEquals(block.height, 2);
+    block.receipts[0].result.expectErr().expectUint(104);
+  },
+});
+
+Clarinet.test({
   name: "Ensure that the contract owner can change the ticket price",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
@@ -53,7 +68,25 @@ Clarinet.test({
 });
 
 Clarinet.test({
-  name: "Ensure that the lottery draw works correctly",
+  name: "Ensure that the lottery draw requires minimum players",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
+    const wallet1 = accounts.get('wallet_1')!;
+    
+    let block = chain.mineBlock([
+      Tx.contractCall('lottery', 'buy-ticket', [types.uint(1)], wallet1.address),
+      Tx.contractCall('lottery', 'change-draw-interval', [types.uint(1)], deployer.address),
+      Tx.contractCall('lottery', 'draw-lottery', [], deployer.address)
+    ]);
+    
+    assertEquals(block.receipts.length, 3);
+    assertEquals(block.height, 2);
+    block.receipts[2].result.expectErr().expectUint(103);
+  },
+});
+
+Clarinet.test({
+  name: "Ensure that the lottery draw works correctly with minimum players",
   async fn(chain: Chain, accounts: Map<string, Account>) {
     const deployer = accounts.get('deployer')!;
     const wallet1 = accounts.get('wallet_1')!;
@@ -74,4 +107,3 @@ Clarinet.test({
     block.receipts[3].result.expectOk();
   },
 });
-
