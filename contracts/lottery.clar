@@ -8,6 +8,7 @@
 (define-constant err-no-winner (err u103))
 (define-constant err-invalid-amount (err u104))
 (define-constant err-max-tickets (err u105))
+(define-constant err-invalid-participant (err u106))
 
 ;; Data variables  
 (define-data-var ticket-price uint u1000000) ;; 1 STX
@@ -36,14 +37,14 @@
       (total-tickets (var-get lottery-balance))
       (random (mod (+ salt block-height) total-tickets))
     )
-    (find-winner random u0 (unwrap-panic (map-get? tickets contract-owner)))
+    (find-winner random u0 (unwrap! (map-get? tickets contract-owner) err-invalid-participant))
   )
 )
 
 (define-private (find-winner (random uint) (current uint) (participant principal))
   (let
     (
-      (participant-tickets (unwrap-panic (map-get? tickets participant)))
+      (participant-tickets (unwrap! (map-get? tickets participant) err-invalid-participant))
     )
     (if (<= random (+ current participant-tickets))
       participant
