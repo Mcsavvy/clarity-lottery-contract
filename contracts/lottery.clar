@@ -6,13 +6,15 @@
 (define-constant err-not-enough-balance (err u101))
 (define-constant err-lottery-closed (err u102))
 (define-constant err-no-winner (err u103))
+(define-constant err-invalid-amount (err u104))
 
-;; Data variables
+;; Data variables  
 (define-data-var ticket-price uint u1000000) ;; 1 STX
 (define-data-var lottery-balance uint u0)
 (define-data-var lottery-open bool true)
 (define-data-var last-draw-block uint u0)
 (define-data-var draw-interval uint u144) ;; Approximately daily (assuming 10-minute block times)
+(define-data-var min-players uint u2) ;; Minimum number of players required for a draw
 
 ;; Maps
 (define-map tickets principal uint)
@@ -48,13 +50,21 @@
   )
 )
 
+(define-private (get-unique-players)
+  (len (filter not-zero (map get-tickets (list-tickets))))
+)
+
+(define-private (not-zero (amount uint))
+  (> amount u0)
+)
+
 ;; Public functions
 (define-public (buy-ticket (number-of-tickets uint))
   (let
     (
       (total-cost (* number-of-tickets (var-get ticket-price)))
     )
-    (if (and (var-get lottery-open) (>= (stx-get-balance tx-sender) total-cost))
+    (if (and (> number-of-tickets u0) (var-get lottery-open) (>= (stx-get-balance tx-sender) total-cost))
       (begin
         (try! (stx-transfer? total-cost tx-sender (as-contract tx-sender)))
         (map-set tickets tx-sender (+ (default-to u0 (map-get? tickets tx-sender)) number-of-tickets))
@@ -63,7 +73,10 @@
       )
       (if (not (var-get lottery-open))
         err-lottery-closed
-        err-not-enough-balance
+        (if (<= number-of-tickets u0)
+          err-invalid-amount
+          err-not-enough-balance
+        )
       )
     )
   )
@@ -75,8 +88,13 @@
       (current-block block-height)
       (last-draw (var-get last-draw-block))
       (interval (var-get draw-interval))
+      (num-players (get-unique-players))
     )
-    (if (and (>= (- current-block last-draw) interval) (> (var-get lottery-balance) u0))
+    (if (and 
+          (>= (- current-block last-draw) interval)
+          (> (var-get lottery-balance) u0)
+          (>= num-players (var-get min-players))
+        )
       (let
         (
           (winner (random-winner current-block))
@@ -116,6 +134,16 @@
   )
 )
 
+(define-public (change-min-players (new-min uint))
+  (if (is-owner)
+    (begin 
+      (var-set min-players new-min)
+      (ok true)
+    )
+    err-owner-only
+  )
+)
+
 ;; Read-only functions
 (define-read-only (get-ticket-price)
   (ok (var-get ticket-price))
@@ -133,3 +161,6 @@
   (map-get? winners {block: block})
 )
 
+(define-read-only (get-min-players)
+  (ok (var-get min-players))
+)
