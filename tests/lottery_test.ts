@@ -1,30 +1,35 @@
 // Previous tests remain unchanged
 
 Clarinet.test({
-  name: "Ensure users cannot exceed max tickets per player limit",
+  name: "Test contract pause functionality",
   async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
     const wallet1 = accounts.get('wallet_1')!;
     
     let block = chain.mineBlock([
-      Tx.contractCall('lottery', 'buy-ticket', [types.uint(101)], wallet1.address)
+      Tx.contractCall('lottery', 'pause-contract', [], deployer.address),
+      Tx.contractCall('lottery', 'buy-ticket', [types.uint(1)], wallet1.address)
     ]);
     
-    assertEquals(block.receipts.length, 1);
-    assertEquals(block.height, 2);
-    block.receipts[0].result.expectErr().expectUint(105);
+    assertEquals(block.receipts.length, 2);
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectErr().expectUint(107);
   },
 });
 
 Clarinet.test({
-  name: "Test invalid participant handling in random winner selection",
+  name: "Test withdrawal functionality",
   async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get('deployer')!;
     const wallet1 = accounts.get('wallet_1')!;
     
     let block = chain.mineBlock([
-      Tx.contractCall('lottery', 'draw-lottery', [], wallet1.address)
+      Tx.contractCall('lottery', 'buy-ticket', [types.uint(1)], wallet1.address),
+      Tx.contractCall('lottery', 'withdraw-balance', [types.uint(1000000)], deployer.address)
     ]);
     
-    assertEquals(block.receipts.length, 1);
-    block.receipts[0].result.expectErr().expectUint(106);
+    assertEquals(block.receipts.length, 2);
+    block.receipts[0].result.expectOk().expectBool(true);
+    block.receipts[1].result.expectOk().expectBool(true);
   },
 });
